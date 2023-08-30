@@ -1,6 +1,16 @@
-# Obot-Completion-Generator
+<h1 align="center">
+  Obot-Completion-Generator
+</h1>
 
-ObotAI入力補完サーバーデータを基づき、渡される入力テキストに対し、補完候補を生成するためのパッケージ
+<p align="center">
+  ObotAI入力補完サーバーデータを基づき、渡される入力テキストに対し、補完候補を生成するためのパッケージ
+</p>
+
+<div align="center">
+
+[![CI](https://github.com/obot-ai/obot-completion-generator/actions/workflows/CI.yaml/badge.svg)](https://github.com/obot-ai/obot-completion-generator/actions/workflows/CI.yaml)
+
+</div>
 
 # 利用方法
 
@@ -82,7 +92,7 @@ import { Generator, Fetcher } from '@obot-ai/completion-generator'
         - text: 補完テキスト本文
         - keywords: キーワード
   */
-  const jaData = fetcher.fetch("ja")
+  const jaData = await fetcher.fetch("ja")
   
   /* Generator.loadData(locale, localeData)
 
