@@ -1,6 +1,6 @@
 {
   "name": "@obot-ai/completion-generator",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A completion generator for ObotAI InputCompletion.",
   "type": "module",
   "files": [

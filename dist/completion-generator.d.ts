@@ -1,31 +1,31 @@
-type LocaleDataItem = {
+export type LocaleDataItem = {
     text: string;
     keywords: string;
 };
-type MatchedResult = {
+export type MatchedResult = {
     isMatched: boolean;
     data?: MatchedResultData;
 };
-type MatchedResultData = {
+export type MatchedResultData = {
     text: string;
     keywords: string;
     matchedKeywords?: MatchedKeyword[];
 };
-type MatchedKeyword = {
+export type MatchedKeyword = {
     text: string;
     startAt: number;
     endAt: number;
 };
-type CompletionGeneratorProperties = {
+export type CompletionGeneratorProperties = {
     keywordSeparator: string;
     minKeywordLength: number;
     strictMatchLocales: string[];
     comparator?: LocaleDataComparator;
     filter?: LocaleDateFilter;
 };
-type LocaleDataComparator = (itemA: LocaleDataItem, itemB: LocaleDataItem, input: string, locale: string) => number;
-type LocaleDateFilter = (localeData: LocaleDataItem[], input: string, locale: string) => MatchedResultData[];
-interface CompletionGeneratorInter {
+export type LocaleDataComparator = (itemA: LocaleDataItem, itemB: LocaleDataItem, input: string, locale: string) => number;
+export type LocaleDateFilter = (localeData: LocaleDataItem[], input: string, locale: string) => MatchedResultData[];
+export interface CompletionGeneratorInter {
     /** キーワードの分割文字 */
     keywordSeparator: string;
     /** キーワードとして認定する最短長さ */
@@ -66,15 +66,15 @@ export declare class Generator implements CompletionGeneratorInter {
     _match(dataItem: LocaleDataItem, input: string): MatchedResult;
     _strictMatch(dataItem: LocaleDataItem, input: string): MatchedResult;
 }
-type CompletionFetcherProperties = {
+export type CompletionFetcherProperties = {
     apiKey: string;
     apiKeyHeaderName?: string;
     getEndpoint?: GetEndpoint;
     handleResponse?: HandleResponse;
 };
-type GetEndpoint = (locale: string) => string;
-type HandleResponse = (data: any) => LocaleDataItem[];
-interface CompletionFetcherInter {
+export type GetEndpoint = (locale: string) => string;
+export type HandleResponse = (data: any) => LocaleDataItem[];
+export interface CompletionFetcherInter {
     apiKey: string;
     fetch(locale: string): Promise<LocaleDataItem[]>;
 }
