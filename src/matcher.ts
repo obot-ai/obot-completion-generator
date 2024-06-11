@@ -265,6 +265,10 @@ export class KeywordMatcher extends Matcher {
     })
 
     const allKeywords = Array.from(keywordSet)
+    if (allKeywords.length === 0) {
+      return
+    }
+
     allKeywords.sort((kwA, kwB) => {
       return kwB.length - kwA.length
     })

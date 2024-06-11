@@ -146,6 +146,8 @@ class R extends g {
       });
     });
     const a = Array.from(s);
+    if (a.length === 0)
+      return;
     a.sort((r, i) => i.length - r.length), this.exactRegExpMap.set(e, new RegExp(a.join("|"), "g"));
     const n = [];
     a.forEach((r) => {
