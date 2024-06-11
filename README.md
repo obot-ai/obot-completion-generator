@@ -48,8 +48,23 @@ import { Generator, Fetcher } from '@obot-ai/completion-generator'
 
   /* Generator Constructor
 
+    Matchers:
+      - ForwardMatcher:
+        - 入力文全文を前方一致でマッチする
+        - キーワードで判定された部分以外も比較対象テキストに含まれる必要がある
+      - KeywordMatcher:
+        - キーワードベースの正規表現を用いてマッチする
+        - キーワードの全文マッチが優先、マッチがなければ部分マッチを行う
+      - ConcatMatcher:
+        - 複数のMatcherのマッチ結果を結合して出力する
+        - addMatcherByClass, addMatcherで結合対象のMatcherを追加しないとマッチ成功結果が得られない
+      - KeywordForwardMatcher:
+        - KeywordMatcher, ForwardMatcherをConcatMatcherで結合したクラス
+      - DefaultMatcher: ForwardMatcher
     Args:
       - properties: object
+        - matcher?: Matcher?:
+          - 指定すると他のオプション設定は無視される、していなければ他のオプション設定でDefaultMatcherを構成して使う
         - keywordSeparator?: string: キーワードの分割文字
         - minKeywordLength?: number: キーワードとして認定する最短長さ
         - strictMatchLocales?: string[]: 単語ごとにキーワードをマッチする言語（指定していない言語コードは文字ごとにマッチを行う）
@@ -60,6 +75,7 @@ import { Generator, Fetcher } from '@obot-ai/completion-generator'
             - locale: string: 言語コード
           - Return: 数字で示した比較結果。0: = , >0: >, <0: <
         - filter?: (localeData: LocaleDataItem[], input: string, locale: string) => MatchedResultData[]: 既存のマッチルールを上書きするメソッド
+          - KeywordMatcherでのみ有効。廃止予定、カスタマイズしたMatcherの指定を推奨
           - Args:
             - localeData: LocaleDataItem({text: string, keywords: string})[]: 該当言語の候補データ集
             - input: string: 入力テキスト
