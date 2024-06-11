@@ -214,7 +214,8 @@ class E extends g {
     const o = new e({
       keywordSeparator: this.keywordSeparator,
       minKeywordLength: this.minKeywordLength,
-      strictMatchLocales: this.strictMatchLocales
+      strictMatchLocales: this.strictMatchLocales,
+      comparator: this.comparator
     });
     this.addMatcher(o);
   }

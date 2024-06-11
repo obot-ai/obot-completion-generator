@@ -369,6 +369,7 @@ export class ConcatMatcher extends Matcher {
       keywordSeparator: this.keywordSeparator,
       minKeywordLength: this.minKeywordLength,
       strictMatchLocales: this.strictMatchLocales,
+      comparator: this.comparator
     })
 
     this.addMatcher(matcher)
