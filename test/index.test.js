@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
-import { Generator, Fetcher } from "../src/index"
+import { Generator, Fetcher, Matcher, KeywordMatcher, DefaultMatcher } from "../src/index"
 import testSuites from "./fixtures/test-suites.json"
 import jaData from "./fixtures/ja.json"
 import enData from "./fixtures/en.json"
@@ -25,6 +25,14 @@ describe("Generator", () => {
 
     test("Construct with [minKeywordLength] property", () => {
       const completionGenerator = new Generator({ minKeywordLength: 5 })
+      expect(completionGenerator.minKeywordLength).toBe(5)
+    })
+
+    test("Construct with [matcher] property", () => {
+      const matcher = new Matcher({
+        minKeywordLength: 5
+      })
+      const completionGenerator = new Generator({ matcher })
       expect(completionGenerator.minKeywordLength).toBe(5)
     })
   })
@@ -63,9 +71,30 @@ describe("Generator", () => {
 
   describe.each(
     testSuites
-  )('Suite $suiteName', ({suiteName, locale, generatorProperties, cases, dataset}) => {
-    
-    const completionGenerator = new Generator(generatorProperties)
+  )('Suite $suiteName', ({
+    suiteName,
+    locale, generatorProperties,
+    matcher, matcherProperties,
+    cases, dataset
+  }) => {
+    let matcherInstance = null
+    if (matcher || matcherProperties) {
+      let MatcherClass = DefaultMatcher
+      if (matcher === 'KeywordMatcher') {
+        MatcherClass = KeywordMatcher
+      }
+      matcherInstance = new MatcherClass({
+        ...matcherProperties
+      })
+    }
+    let completionGenerator
+    if (matcherInstance) {
+      completionGenerator = new Generator({
+        matcher: matcherInstance
+      })
+    } else {
+      completionGenerator = new Generator(generatorProperties)
+    }
     completionGenerator.loadData(locale, dataset)
 
     test.each(cases)('Case $name', ({name, input, expectedIdx}) => {

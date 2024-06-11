@@ -1,52 +1,88 @@
-export type LocaleDataItem = {
-    text: string;
-    keywords: string;
+export declare type CompletionFetcherProperties = {
+    apiKey: string;
+    apiKeyHeaderName?: string;
+    getEndpoint?: GetEndpoint;
+    handleResponse?: HandleResponse;
 };
-export type MatchedResult = {
-    isMatched: boolean;
-    data?: MatchedResultData;
+
+export declare type CompletionGeneratorProperties = {
+    keywordSeparator?: string;
+    minKeywordLength?: number;
+    strictMatchLocales?: string[];
+    maxResults?: number;
+    comparator?: LocaleDataComparator;
+    filter?: LocaleDateFilter;
+    matcher?: Matcher;
 };
-export type MatchedResultData = {
-    text: string;
-    keywords: string;
-    matchedKeywords?: MatchedKeyword[];
-};
-export type MatchedKeyword = {
-    text: string;
-    startAt: number;
-    endAt: number;
-};
-export type CompletionGeneratorProperties = {
-    keywordSeparator: string;
-    minKeywordLength: number;
-    strictMatchLocales: string[];
+
+export declare type CompletionMatcherProperties = {
+    keywordSeparator?: string;
+    minKeywordLength?: number;
+    strictMatchLocales?: string[];
+    maxResults?: number;
     comparator?: LocaleDataComparator;
     filter?: LocaleDateFilter;
 };
-export type LocaleDataComparator = (itemA: LocaleDataItem, itemB: LocaleDataItem, input: string, locale: string) => number;
-export type LocaleDateFilter = (localeData: LocaleDataItem[], input: string, locale: string) => MatchedResultData[];
-export interface CompletionGeneratorInter {
-    /** キーワードの分割文字 */
-    keywordSeparator: string;
-    /** キーワードとして認定する最短長さ */
-    minKeywordLength: number;
-    /** _strictMatchを使う言語コード設定 */
-    strictMatchLocales: string[];
-    /** ソート用メソッド */
-    comparator?: LocaleDataComparator;
-    /** 絞り込み用メソッド */
-    filter?: LocaleDateFilter;
-    data: Map<string, LocaleDataItem[]>;
-    loadData: (locale: string, localeData: LocaleDataItem[]) => void;
-    generateCompletions: (input: string, locale: string) => MatchedResultData[];
+
+export declare class ConcatMatcher extends Matcher {
+    matchers: Matcher[];
+    constructor(properties: CompletionMatcherProperties);
+    addMatcherByClass(matcherClass: typeof Matcher): void;
+    addMatcher(matcher: Matcher): void;
+    loadData(locale: string, localeData: LocaleDataItem[]): void;
+    match(input: string, locale: string): MatchedResultData[];
 }
-export declare class Generator implements CompletionGeneratorInter {
-    keywordSeparator: string;
-    minKeywordLength: number;
-    strictMatchLocales: string[];
-    comparator?: LocaleDataComparator;
-    filter?: LocaleDateFilter;
-    data: Map<string, LocaleDataItem[]>;
+
+export declare const DefaultMatcher: typeof ForwardMatcher;
+
+export declare class Fetcher {
+    apiKey: string;
+    apiKeyHeaderName: string;
+    getEndpoint: GetEndpoint;
+    handleResponse: HandleResponse;
+    constructor(properties?: CompletionFetcherProperties);
+    /**
+     * 指定エンドポイントから候補データを取得
+     * @param locale 言語コード
+     * @returns
+     */
+    fetch(locale: string): Promise<LocaleDataItem[]>;
+    _fetch(endpoint: string): Promise<any>;
+    isFetchAvailable(): boolean;
+}
+
+/**
+ * 入力文を前方一致でマッチするMatcher
+ */
+export declare class ForwardMatcher extends Matcher {
+    match(input: string, locale: string): MatchedResultData[];
+    _match(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[];
+    _charMatch(dataItem: LocaleDataItem, input: string): {
+        isMatched: boolean;
+        data?: undefined;
+    } | {
+        isMatched: boolean;
+        data: {
+            text: string;
+            keywords: string;
+            matchedKeywords: MatchedKeyword[];
+        };
+    };
+    _wordMatch(dataItem: LocaleDataItem, input: string): {
+        isMatched: boolean;
+        data?: undefined;
+    } | {
+        isMatched: boolean;
+        data: {
+            text: string;
+            keywords: string;
+            matchedKeywords: MatchedKeyword[];
+        };
+    };
+}
+
+declare class Generator_2 {
+    matcher: Matcher;
     constructor(properties?: CompletionGeneratorProperties);
     /**
      * 候補データをインスタンスにセットする
@@ -62,34 +98,73 @@ export declare class Generator implements CompletionGeneratorInter {
      * @returns 補完データ
      */
     generateCompletions(input: string, locale: string): MatchedResultData[];
-    _getMatchedCompletions(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[];
-    _match(dataItem: LocaleDataItem, input: string): MatchedResult;
-    _strictMatch(dataItem: LocaleDataItem, input: string): MatchedResult;
+    get keywordSeparator(): string;
+    get minKeywordLength(): number;
+    get strictMatchLocales(): string[];
+    get data(): Map<string, LocaleDataItem[]>;
 }
-export type CompletionFetcherProperties = {
-    apiKey: string;
-    apiKeyHeaderName?: string;
-    getEndpoint?: GetEndpoint;
-    handleResponse?: HandleResponse;
+export { Generator_2 as Generator }
+
+export declare type GetEndpoint = (locale: string) => string;
+
+export declare type HandleResponse = (data: any) => LocaleDataItem[];
+
+export declare class KeywordForwardMatcher extends ConcatMatcher {
+    constructor(properties: CompletionMatcherProperties);
+}
+
+export declare class KeywordMatcher extends Matcher {
+    exactRegExpMap: Map<string, RegExp>;
+    partialRegExpMap: Map<string, RegExp>;
+    loadData(locale: string, localeData: LocaleDataItem[]): void;
+    match(input: string, locale: string): MatchedResultData[];
+    _match(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[];
+}
+
+export declare type LocaleDataComparator = (itemA: LocaleDataItem, itemB: LocaleDataItem, input: string, locale: string) => number;
+
+export declare type LocaleDataItem = {
+    idx?: number;
+    text: string;
+    keywords: string;
 };
-export type GetEndpoint = (locale: string) => string;
-export type HandleResponse = (data: any) => LocaleDataItem[];
-export interface CompletionFetcherInter {
-    apiKey: string;
-    fetch(locale: string): Promise<LocaleDataItem[]>;
-}
-export declare class Fetcher implements CompletionFetcherInter {
-    apiKey: string;
-    apiKeyHeaderName: string;
-    getEndpoint: GetEndpoint;
-    handleResponse: HandleResponse;
-    constructor(properties?: CompletionFetcherProperties);
+
+export declare type LocaleDateFilter = (localeData: LocaleDataItem[], input: string, locale: string) => MatchedResultData[];
+
+export declare type MatchedKeyword = {
+    text: string;
+    startAt: number;
+    endAt: number;
+};
+
+export declare type MatchedResult = {
+    isMatched: boolean;
+    data?: MatchedResultData;
+};
+
+export declare type MatchedResultData = {
+    idx?: number;
+    text: string;
+    keywords: string;
+    matchedKeywords?: MatchedKeyword[];
+};
+
+export declare class Matcher {
+    keywordSeparator: string;
+    minKeywordLength: number;
+    strictMatchLocales: string[];
+    comparator?: LocaleDataComparator;
+    filter?: LocaleDateFilter;
+    data: Map<string, LocaleDataItem[]>;
+    maxResults?: number;
+    constructor(properties?: CompletionMatcherProperties);
     /**
-     * 指定エンドポイントから候補データを取得
+     * 候補データをインスタンスにセットする
      * @param locale 言語コード
-     * @returns
+     * @param localeData 言語データ
      */
-    fetch(locale: string): Promise<LocaleDataItem[]>;
-    _fetch(endpoint: string): Promise<any>;
-    isFetchAvailable(): boolean;
+    loadData(locale: string, localeData: LocaleDataItem[]): void;
+    match(input: string, locale: string): MatchedResultData[];
 }
+
+export { }
