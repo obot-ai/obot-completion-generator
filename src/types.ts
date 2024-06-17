@@ -11,9 +11,17 @@ export type MatchedResultData = {
   text: string;
   keywords: string;
   matchedKeywords?: MatchedKeyword[];
+  noKeywordMatchedLength?: number;  // ForwardMatcherに通した場合のみ付与される、キーワードと判定されていないが、比較対象のテキストに含まれる部分の総長さ
+  score?: number;
 }
 
 export type MatchedKeyword = {
+  text: string;
+  startAt: number;
+  endAt: number;
+}
+
+export type NoMatchedKeywordPart = {
   text: string;
   startAt: number;
   endAt: number;
@@ -27,6 +35,8 @@ export type LocaleDataItem = {
 
 export type LocaleDataComparator = (itemA: LocaleDataItem, itemB: LocaleDataItem, input: string, locale: string) => number
 export type LocaleDateFilter = (localeData: LocaleDataItem[], input: string, locale: string) => MatchedResultData[]
+export type MatchedResultDataScorer = ((data: MatchedResultData, input: string, locale: string) => number) | null
+export type MatchedResultDataSort = ((rsA: MatchedResultData, rsB: MatchedResultData, input: string, locale: string) => number) | null
 
 export type CompletionMatcherProperties = {
   keywordSeparator?: string;
@@ -35,6 +45,8 @@ export type CompletionMatcherProperties = {
   maxResults?: number;
   comparator?: LocaleDataComparator;
   filter?: LocaleDateFilter;
+  scorer?: MatchedResultDataScorer;
+  sort?: MatchedResultDataSort;
 }
 export type CompletionGeneratorProperties = {
   keywordSeparator?: string;
@@ -43,6 +55,8 @@ export type CompletionGeneratorProperties = {
   maxResults?: number;
   comparator?: LocaleDataComparator;
   filter?: LocaleDateFilter;
+  scorer?: MatchedResultDataScorer;
+  sort?: MatchedResultDataSort;
   matcher?: Matcher;
 }
 

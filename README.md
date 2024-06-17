@@ -17,7 +17,7 @@
 Obot-Completion-Generatorに `Generator` と `Fetcher` の二つのクラスがあり、 `Fetcher` は ObotAI InputCompletion サーバーなどから候補データ集を取得するクラスで、 `Generator` は予めデータを設定し、入力テキストを渡して補完データを取得するクラスです。
 
 ```Javascript
-import { Generator, Fetcher } from '@obot-ai/completion-generator'
+import { Generator, Fetcher, KeywordForwardMatcher } from '@obot-ai/completion-generator'
 
 (async () => {
   const API_KEY = "your-api-key"
@@ -88,14 +88,47 @@ import { Generator, Fetcher } from '@obot-ai/completion-generator'
                 - text: string: キーワード本文
                 - startAt: int: 位置情報
                 - endAt: int: 位置情報
+        - scorer?: (data: MatchedResultData, input: string, locale: string) => number: マッチ結果に含まれる情報を用いて点数を付けるメソッド
+          - 含まれる情報
+            - ForwardMatcherに通した場合、
+              - machedKeywords: (text: string, startAt: number, endAt: number)[]: キーワードと判定された部分の情報
+              - noKeywordMatchedLength: number: キーワードと判定されていないが、比較対象質問に含まれる部分の総長さ
+            - KeywordMatcherに通した場合、
+              - machedKeywords: (text: string, startAt: number, endAt: number)[]: キーワードと判定された部分の情報
+          - デフォルト: 
+            - machedKeywords.length * 10 + noKeywordMatchedLength
+        - sort: (rsA: MatchedResultData, rsB: MatchedResultData, input: string, locale: string) => number: マッチ結果をソートするメソッド
+          - デフォルト:
+            - マッチ結果に付与されているスコアでソートする
+
   */
-  const generator = new Generator({
+
+  const matcher = new KeywordForwardMatcher({
     keywordSeparator: ",",
     minKeywordLength: 2,
     strictMatchLocales: ["en"],
     comparator: (itemA, itemB, input, locale) => {
       return itemA.text.localeCompare(itemB.text)
+    },
+    scorer: (data, input, locale) => {
+      let score = 0
+      if (Array.isArray(data.matchedKeywords)) {
+        for (const kw of data.matchedKeywords) {
+          score += 10 * kw.text.length
+        }
+      }
+      if (data.noKeywordMatchedLength) {
+        score += 0.1 * data.noKeywordMatchedLength
+      }
+      return score
+    },
+    sort: (rsA, rsB, input, locale) => {
+      return 0
     }
+  })
+
+  const generator = new Generator({
+    matcher: matcher
   })
 
   /* Fetcher.fetch(locale)

@@ -1,10 +1,10 @@
 import type {
   MatchedResultData,
-  LocaleDataItem, MatchedResult, MatchedKeyword,
-  LocaleDataComparator, LocaleDateFilter,
+  LocaleDataItem, MatchedResult, MatchedKeyword, NoMatchedKeywordPart,
+  LocaleDataComparator, LocaleDateFilter, MatchedResultDataScorer, MatchedResultDataSort,
   CompletionMatcherProperties
 } from "./types"
-import { range } from "./utils"
+import { range, isSameKeyword } from "./utils"
 
 
 export interface MatcherInters {
@@ -18,6 +18,8 @@ export class Matcher {
   strictMatchLocales: string[];
   comparator?: LocaleDataComparator;
   filter?: LocaleDateFilter;
+  scorer?: MatchedResultDataScorer;
+  sort?: MatchedResultDataSort;
   data: Map<string, LocaleDataItem[]>;
   maxResults?: number
 
@@ -36,6 +38,12 @@ export class Matcher {
     if (typeof properties.filter === 'function') {
       this.filter = properties.filter
     }
+    if (typeof properties.scorer === 'function' || properties.scorer === null) {
+      this.scorer = properties.scorer
+    }
+    if (typeof properties.sort === 'function' || properties.sort === null) {
+      this.sort = properties.sort
+    }
     this.data = new Map();
   }
 
@@ -48,9 +56,68 @@ export class Matcher {
     this.data.set(locale, localeData)
   }
 
-  // @ts-ignore
   match(input: string, locale: string): MatchedResultData[] {
+    const results = this._match(input, locale)
+
+    this._scoreResults(results, input, locale)
+    this._sortResults(results, input, locale)
+
+    if (this.maxResults && this.maxResults > 0) {
+      return results.slice(0, this.maxResults)
+    }
+    return results
+  }
+
+  // @ts-ignore
+  _match(input: string, locale: string): MatchedResultData[] {
     return []
+  }
+
+  _scoreResults(results: MatchedResultData[], input: string, locale: string): void {
+    let scorer = null
+    if (this.scorer) {
+      scorer = this.scorer
+    } else if (this.scorer !== null) {
+      scorer = this._defaultScorer
+    }
+
+    if (scorer) {
+      for (const data of results) {
+        data.score = scorer(data, input, locale)
+      }
+    }
+  }
+
+  // @ts-ignore
+  _defaultScorer(data: MatchedResultData, input: string, locale: string): number {
+    let score = 0
+    if (data.matchedKeywords) {
+      score += 10 * data.matchedKeywords.length
+    }
+    if (data.noKeywordMatchedLength) {
+      score += data.noKeywordMatchedLength
+    }
+    return score
+  }
+
+  _sortResults(results: MatchedResultData[], input: string, locale: string) {
+    let sort = null
+    if (this.sort) {
+      sort = this.sort
+    } else if (this.sort !== null) {
+      sort = this._defaultSort
+    }
+    if (sort) {
+      results.sort((rsA, rsB) => sort(rsA, rsB, input, locale))
+    }
+  }
+
+  // @ts-ignore
+  _defaultSort(rsA: MatchedResultData, rsB: MatchedResultData, input: string, locale: string) {
+    if (rsA.score && rsB.score) {
+      return rsB.score - rsA.score
+    }
+    return 0
   }
 }
 
@@ -59,7 +126,7 @@ export class Matcher {
  */
 export class ForwardMatcher extends Matcher {
 
-  match(input: string, locale: string): MatchedResultData[] {
+  _match(input: string, locale: string): MatchedResultData[] {
     const localeDataOrigin = this.data.get(locale)
 
     if (!localeDataOrigin) {
@@ -80,10 +147,10 @@ export class ForwardMatcher extends Matcher {
       return filter(localeData, input, locale)
     }
 
-    return this._match(localeData, input.toLowerCase(), locale)
+    return this._forwardMatch(localeData, input.toLowerCase(), locale)
   }
 
-  _match(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[] {
+  _forwardMatch(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[] {
     // スペースで単語を区切る言語は、単語ごとにマッチ、そうでない場合は文字ごとにマッチ
     const doStrictMatch = this.strictMatchLocales.indexOf(locale) !== -1
 
@@ -99,10 +166,6 @@ export class ForwardMatcher extends Matcher {
 
         if (checkResult.isMatched && checkResult.data) {
           results.push(checkResult.data)
-        }
-
-        if (this.maxResults && results.length >= this.maxResults) {
-          break
         }
       }
     }
@@ -139,6 +202,9 @@ export class ForwardMatcher extends Matcher {
             matchedKeyword = checkWord
             endAt += 1
           }
+          if (endAt === inputLength) {
+            endAt -= 1
+          }
         }
 
         if (matchedKeyword.length >= minKeywordLength) {
@@ -159,7 +225,7 @@ export class ForwardMatcher extends Matcher {
       }
     }
 
-    const unmatchedParts: string[] = []
+    const noMatchedKeywordParts: NoMatchedKeywordPart[] = []  // キーワード判定の部分を取り除いた部分の集合
 
     let keywordIdx = 0
     let prevKeyword: MatchedKeyword | null = null
@@ -170,29 +236,46 @@ export class ForwardMatcher extends Matcher {
       let startAt = currentKeyword.startAt
 
       if (startAt > prevEndAt) {
-        unmatchedParts.push(input.slice(prevEndAt + 1, startAt))
+        noMatchedKeywordParts.push({
+          text: input.slice(prevEndAt + 1, startAt),
+          startAt: prevEndAt + 1,
+          endAt: startAt - 1
+        })
       }
 
       prevKeyword = currentKeyword
       keywordIdx += 1
     }
     if (keywordIdx === 0) {
-      unmatchedParts.push(input)
+      noMatchedKeywordParts.push({
+        text: input,
+        startAt: 0,
+        endAt: inputLength - 1
+      })
     } else if (currentKeyword) {
       const lastEndAt = currentKeyword.endAt
       if (lastEndAt + 1 < inputLength) {
-        unmatchedParts.push(input.slice(lastEndAt + 1, inputLength))
+        noMatchedKeywordParts.push({
+          text: input.slice(lastEndAt + 1, inputLength),
+          startAt: lastEndAt + 1,
+          endAt: inputLength - 1
+        })
       }
     }
 
-    const isMatched = unmatchedParts.every(word => text.indexOf(word) !== -1)
+    const isMatched = noMatchedKeywordParts.every(part => text.indexOf(part.text) !== -1)
+
+    let noKeywordMatchedLength = 0
+    noMatchedKeywordParts.forEach((part) => {
+      noKeywordMatchedLength += part.text.length
+    })
 
     return {
       isMatched,
       data: {
         text: dataItem.text,
         keywords: dataItem.keywords,
-        matchedKeywords
+        matchedKeywords, noKeywordMatchedLength
       }
     }
   }
@@ -223,7 +306,7 @@ export class ForwardMatcher extends Matcher {
     const matchedKeywords: MatchedKeyword[] = inputs.filter(ipt => keywords.indexOf(ipt) !== -1).map(
       kw => {
         const startAt = input.indexOf(kw)
-        const endAt = startAt + kw.length
+        const endAt = startAt + kw.length - 1
         return {
           text: kw,
           startAt: startAt,
@@ -234,12 +317,18 @@ export class ForwardMatcher extends Matcher {
 
     const unmatchedParts = inputs.filter(ipt => keywords.indexOf(ipt) === -1)
     const isMatched = unmatchedParts.every(word => text.indexOf(word) !== -1)
-    
+
+    let noKeywordMatchedLength = 0
+    unmatchedParts.forEach((part) => {
+      noKeywordMatchedLength += part.length
+    })
+
     return {
       isMatched, data: {
         text: dataItem.text,
         keywords: dataItem.keywords,
-        matchedKeywords
+        matchedKeywords,
+        noKeywordMatchedLength
       }
     }
   }
@@ -265,6 +354,10 @@ export class KeywordMatcher extends Matcher {
     })
 
     const allKeywords = Array.from(keywordSet)
+    if (allKeywords.length === 0) {
+      return
+    }
+
     allKeywords.sort((kwA, kwB) => {
       return kwB.length - kwA.length
     })
@@ -288,7 +381,7 @@ export class KeywordMatcher extends Matcher {
     this.partialRegExpMap.set(locale, new RegExp(partialPatterns.join("|"), "g"))
   }
 
-  match(input: string, locale: string): MatchedResultData[] {
+  _match(input: string, locale: string): MatchedResultData[] {
     const localeDataOrigin = this.data.get(locale)
 
     if (!localeDataOrigin) {
@@ -304,11 +397,10 @@ export class KeywordMatcher extends Matcher {
       })
     }
 
-    return this._match(localeData, input, locale)
+    return this._keywordMatch(localeData, input, locale)
   }
 
-  _match(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[]{
-
+  _keywordMatch(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[] {
     const results: MatchedResultData[] = []
     let exactRegExp = this.exactRegExpMap.get(locale)
     if (localeData && exactRegExp) {
@@ -321,14 +413,18 @@ export class KeywordMatcher extends Matcher {
         }
       }
       if (matches) {
-        const matchedKeywords: MatchedKeyword[] = matches.map(match => {
-          const idx = input.indexOf(match)
-          return {
+        let lastEndAt = 0
+        const matchedKeywords: MatchedKeyword[] = []
+        for (const match of matches) {
+          const startAt = input.indexOf(match, lastEndAt)
+          const endAt = startAt + match.length - 1
+          matchedKeywords.push({
             text: match,
-            startAt: idx,
-            endAt: idx + match.length
-          }
-        })
+            startAt: startAt,
+            endAt: endAt
+          })
+          lastEndAt = endAt
+        }
         for (const item of localeData) {
           const matched: MatchedKeyword[] = []
           const itemKeywords = item.keywords
@@ -343,9 +439,6 @@ export class KeywordMatcher extends Matcher {
               keywords: item.keywords,
               matchedKeywords: matched
             })
-          }
-          if (this.maxResults && results.length >= this.maxResults) {
-            break
           }
         }
       }
@@ -389,24 +482,40 @@ export class ConcatMatcher extends Matcher {
     })
   }
 
-  match(input: string, locale: string): MatchedResultData[] {
+  _match(input: string, locale: string): MatchedResultData[] {
     const results: MatchedResultData[] = []
     for (const matcher of this.matchers) {
       const matched = matcher.match(input, locale)
       for (const result of matched) {
-        if (!results.some(rt => rt.text === result.text)) {
+        const exists = results.find(rt => rt.text === result.text)
+        if (exists) {
+          const existsMatchedKeywords = exists.matchedKeywords
+          const resultMatchedKeywords = result.matchedKeywords
+          let mergedMatchedKeywords: MatchedKeyword[] = []
+          if (existsMatchedKeywords) {
+            existsMatchedKeywords.forEach(kw => {
+              if (!mergedMatchedKeywords.some(mkw => isSameKeyword(kw, mkw))) {
+                mergedMatchedKeywords.push(kw)
+              }
+            })
+          }
+          if (resultMatchedKeywords) {
+            resultMatchedKeywords.forEach(kw => {
+              if (!mergedMatchedKeywords.some(mkw => isSameKeyword(kw, mkw))) {
+                mergedMatchedKeywords.push(kw)
+              }
+            })
+          }
+          mergedMatchedKeywords = Array.from(new Set(mergedMatchedKeywords))
+          Object.assign(exists, result, {
+            matchedKeywords: mergedMatchedKeywords
+          })
+        } else {
           results.push(result)
         }
-
-        if (this.maxResults && results.length >= this.maxResults) {
-          break
-        }
-      }
-
-      if (this.maxResults && results.length >= this.maxResults) {
-        break
       }
     }
+
     return results
   }
 }
@@ -415,8 +524,16 @@ export class KeywordForwardMatcher extends ConcatMatcher {
   constructor(properties: CompletionMatcherProperties) {
     super(properties)
 
-    this.addMatcher(new KeywordMatcher(properties))
-    this.addMatcher(new ForwardMatcher(properties))
+    this.addMatcher(new KeywordMatcher({
+      ...properties,
+      scorer: null,
+      sort: null
+    }))
+    this.addMatcher(new ForwardMatcher({
+      ...properties,
+      scorer: null,
+      sort: null
+    }))
   }
 }
 

@@ -12,6 +12,8 @@ export declare type CompletionGeneratorProperties = {
     maxResults?: number;
     comparator?: LocaleDataComparator;
     filter?: LocaleDateFilter;
+    scorer?: MatchedResultDataScorer;
+    sort?: MatchedResultDataSort;
     matcher?: Matcher;
 };
 
@@ -22,6 +24,8 @@ export declare type CompletionMatcherProperties = {
     maxResults?: number;
     comparator?: LocaleDataComparator;
     filter?: LocaleDateFilter;
+    scorer?: MatchedResultDataScorer;
+    sort?: MatchedResultDataSort;
 };
 
 export declare class ConcatMatcher extends Matcher {
@@ -30,7 +34,7 @@ export declare class ConcatMatcher extends Matcher {
     addMatcherByClass(matcherClass: typeof Matcher): void;
     addMatcher(matcher: Matcher): void;
     loadData(locale: string, localeData: LocaleDataItem[]): void;
-    match(input: string, locale: string): MatchedResultData[];
+    _match(input: string, locale: string): MatchedResultData[];
 }
 
 export declare const DefaultMatcher: typeof ForwardMatcher;
@@ -55,8 +59,8 @@ export declare class Fetcher {
  * 入力文を前方一致でマッチするMatcher
  */
 export declare class ForwardMatcher extends Matcher {
-    match(input: string, locale: string): MatchedResultData[];
-    _match(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[];
+    _match(input: string, locale: string): MatchedResultData[];
+    _forwardMatch(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[];
     _charMatch(dataItem: LocaleDataItem, input: string): {
         isMatched: boolean;
         data?: undefined;
@@ -66,6 +70,7 @@ export declare class ForwardMatcher extends Matcher {
             text: string;
             keywords: string;
             matchedKeywords: MatchedKeyword[];
+            noKeywordMatchedLength: number;
         };
     };
     _wordMatch(dataItem: LocaleDataItem, input: string): {
@@ -77,6 +82,7 @@ export declare class ForwardMatcher extends Matcher {
             text: string;
             keywords: string;
             matchedKeywords: MatchedKeyword[];
+            noKeywordMatchedLength: number;
         };
     };
 }
@@ -117,8 +123,8 @@ export declare class KeywordMatcher extends Matcher {
     exactRegExpMap: Map<string, RegExp>;
     partialRegExpMap: Map<string, RegExp>;
     loadData(locale: string, localeData: LocaleDataItem[]): void;
-    match(input: string, locale: string): MatchedResultData[];
-    _match(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[];
+    _match(input: string, locale: string): MatchedResultData[];
+    _keywordMatch(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[];
 }
 
 export declare type LocaleDataComparator = (itemA: LocaleDataItem, itemB: LocaleDataItem, input: string, locale: string) => number;
@@ -147,7 +153,13 @@ export declare type MatchedResultData = {
     text: string;
     keywords: string;
     matchedKeywords?: MatchedKeyword[];
+    noKeywordMatchedLength?: number;
+    score?: number;
 };
+
+export declare type MatchedResultDataScorer = ((data: MatchedResultData, input: string, locale: string) => number) | null;
+
+export declare type MatchedResultDataSort = ((rsA: MatchedResultData, rsB: MatchedResultData, input: string, locale: string) => number) | null;
 
 export declare class Matcher {
     keywordSeparator: string;
@@ -155,6 +167,8 @@ export declare class Matcher {
     strictMatchLocales: string[];
     comparator?: LocaleDataComparator;
     filter?: LocaleDateFilter;
+    scorer?: MatchedResultDataScorer;
+    sort?: MatchedResultDataSort;
     data: Map<string, LocaleDataItem[]>;
     maxResults?: number;
     constructor(properties?: CompletionMatcherProperties);
@@ -165,6 +179,17 @@ export declare class Matcher {
      */
     loadData(locale: string, localeData: LocaleDataItem[]): void;
     match(input: string, locale: string): MatchedResultData[];
+    _match(input: string, locale: string): MatchedResultData[];
+    _scoreResults(results: MatchedResultData[], input: string, locale: string): void;
+    _defaultScorer(data: MatchedResultData, input: string, locale: string): number;
+    _sortResults(results: MatchedResultData[], input: string, locale: string): void;
+    _defaultSort(rsA: MatchedResultData, rsB: MatchedResultData, input: string, locale: string): number;
 }
+
+export declare type NoMatchedKeywordPart = {
+    text: string;
+    startAt: number;
+    endAt: number;
+};
 
 export { }

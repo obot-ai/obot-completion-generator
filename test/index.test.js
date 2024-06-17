@@ -1,6 +1,6 @@
 import { describe, expect, test, vi } from 'vitest'
 
-import { Generator, Fetcher, Matcher, KeywordMatcher, DefaultMatcher } from "../src/index"
+import { Generator, Fetcher, Matcher, KeywordMatcher, DefaultMatcher, KeywordForwardMatcher, ConcatMatcher, ForwardMatcher } from "../src/index"
 import testSuites from "./fixtures/test-suites.json"
 import jaData from "./fixtures/ja.json"
 import enData from "./fixtures/en.json"
@@ -69,6 +69,64 @@ describe("Generator", () => {
     expect(result1).toMatchObject([])
   })
 
+  test("Match unset Data in KeywordMatcher", () => {
+    const completionGenerator = new Generator({
+      matcher: new KeywordMatcher()
+    })
+    completionGenerator.loadData("ja", jaData.user_says)
+
+    const result1 = completionGenerator.generateCompletions("test", "en")
+    expect(result1).toMatchObject([])
+  })
+
+  test("ConcatMatcher addMatcherByClass", () => {
+    const localeData = [
+      { text: "天気どうですか", keywords: "天気,気候" },
+      { text: "天気がいいですね", keywords: "" }
+    ]
+    const concatMatcher = new ConcatMatcher()
+    concatMatcher.addMatcherByClass(KeywordMatcher)
+    concatMatcher.addMatcherByClass(ForwardMatcher)
+    const completionGenerator = new Generator({
+      matcher: concatMatcher
+    })
+    completionGenerator.loadData("ja", localeData)
+
+    const completions = completionGenerator.generateCompletions("天気がいい", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "天気どうですか", "天気がいいですね"
+    ])
+  })
+
+  test("ConcatMatcher addMatcherByClass, Case 2", () => {
+    const localeData = [
+      { text: "天気どうですか", keywords: "天気,気候" },
+      { text: "天気がいいですね", keywords: "" }
+    ]
+    const concatMatcher = new ConcatMatcher()
+    concatMatcher.addMatcherByClass(ForwardMatcher)
+    concatMatcher.addMatcherByClass(KeywordMatcher)
+    const completionGenerator = new Generator({
+      matcher: concatMatcher
+    })
+    completionGenerator.loadData("ja", localeData)
+
+    const completions = completionGenerator.generateCompletions("天気がいい", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "天気どうですか", "天気がいいですね"
+    ])
+  })
+
+  test("Base Matcher returns nothing", () => {
+    const completionGenerator = new Generator({
+      matcher: new Matcher()
+    })
+    completionGenerator.loadData("ja", jaData.user_says)
+
+    const result1 = completionGenerator.generateCompletions("corona", "ja")
+    expect(result1).toMatchObject([])
+  })
+
   describe.each(
     testSuites
   )('Suite $suiteName', ({
@@ -80,7 +138,9 @@ describe("Generator", () => {
     let matcherInstance = null
     if (matcher || matcherProperties) {
       let MatcherClass = DefaultMatcher
-      if (matcher === 'KeywordMatcher') {
+      if (matcher === 'keyword_forward') {
+        MatcherClass = KeywordForwardMatcher
+      } else if (matcher === 'keyword') {
         MatcherClass = KeywordMatcher
       }
       matcherInstance = new MatcherClass({
@@ -102,10 +162,11 @@ describe("Generator", () => {
       const resultTexts = completionGenerator.generateCompletions(input, locale).map(result => result.text)
 
       expect(resultTexts.length).toBe(expectedTexts.length)
-      expect(
-        expectedTexts.every(text => resultTexts.indexOf(text) !== -1) &&
-        resultTexts.every(text => expectedTexts.indexOf(text) !== -1)
-      ).toBeTruthy()
+      // expect(
+      //   expectedTexts.every(text => resultTexts.indexOf(text) !== -1) &&
+      //   resultTexts.every(text => expectedTexts.indexOf(text) !== -1)
+      // ).toBeTruthy()
+      expect(resultTexts).toEqual(expectedTexts)
     })
   })
 
@@ -154,6 +215,49 @@ describe("Generator", () => {
         "えおかきく", "うえおかき", "いうえおか", "あいうえお"
       ])
     })
+
+    const originDataWithKeywords = [
+      { text: "あいうえお", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "いうえおか", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "うえおかき", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "えおかきく", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "おかきくけ", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "かきくけこ", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "きくけこさ", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "くけこさし", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "けこさしす", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "こさしすせ", keywords: "あいうえおかきくけこさしすせそ,五十音" },
+      { text: "さしすせそ", keywords: "あいうえおかきくけこさしすせそ,五十音" }
+    ]
+
+    test("KeywordMatcher comparator asc", () => {
+      const completionGenerator = new Generator({
+        matcher: new KeywordMatcher({
+          maxResults: 3,
+          comparator(itemA, itemB, input, locale) {
+            return itemA.text.localeCompare(itemB.text)
+          }
+        })
+      })
+      completionGenerator.loadData("ja", Array.from(originDataWithKeywords))
+      const completions = completionGenerator.generateCompletions("五十音", "ja")
+      expect(completions.map(cpl => cpl.text)).toEqual(["あいうえお", "いうえおか", "うえおかき"])
+    })
+
+    
+    test("KeywordMatcher comparator asc", () => {
+      const completionGenerator = new Generator({
+        matcher: new KeywordMatcher({
+          maxResults: 3,
+          comparator(itemA, itemB, input, locale) {
+            return -1 * itemA.text.localeCompare(itemB.text)
+          }
+        })
+      })
+      completionGenerator.loadData("ja", Array.from(originDataWithKeywords))
+      const completions = completionGenerator.generateCompletions("五十音", "ja")
+      expect(completions.map(cpl => cpl.text)).toEqual(["さしすせそ", "こさしすせ", "けこさしす"])
+    })
   })
 
   test("Custom filter", () => {
@@ -192,8 +296,51 @@ describe("Generator", () => {
       "あいうえお", "いうえおか"
     ])
   })
-})
 
+  const dataForCustomSorting = [
+    { text: "あいうえお", keywords: "" },
+    { text: "いうえおか", keywords: "あいうえお,五十音" },
+  ]
+  test("Custom Scorer, Case 1", () => {
+    const completionGenerator = new Generator({
+      scorer(data, input, locale) {
+        return 100 * data.matchedKeywords.length + parseInt(data.noKeywordMatchedLength)
+      }
+    })
+    completionGenerator.loadData("ja", Array.from(dataForCustomSorting))
+    const completions = completionGenerator.generateCompletions("あいうえお", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "いうえおか", "あいうえお"
+    ])
+  })
+
+  test("Custom Scorer, Case 2", () => {
+    const completionGenerator = new Generator({
+      scorer(data, input, locale) {
+        return parseInt(data.noKeywordMatchedLength)
+      }
+    })
+    completionGenerator.loadData("ja", Array.from(dataForCustomSorting))
+    const completions = completionGenerator.generateCompletions("あいうえお", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "あいうえお", "いうえおか"
+    ])
+  })
+
+  test("Custom sort", () => {
+    
+    const completionGenerator = new Generator({
+      sort(rsA, rsB, input, locale) {
+        return rsA.score - rsB.score
+      }
+    })
+    completionGenerator.loadData("ja", Array.from(dataForCustomSorting))
+    const completions = completionGenerator.generateCompletions("あいうえお", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "あいうえお", "いうえおか"
+    ])
+  })
+})
 
 describe("Fetcher", () => {
   describe("Constructor", () => {
