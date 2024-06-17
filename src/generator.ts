@@ -19,7 +19,9 @@ export class Generator {
         minKeywordLength: properties.minKeywordLength || 2,
         strictMatchLocales: properties.strictMatchLocales || ["en"],
         comparator: properties.comparator,
-        filter: properties.filter
+        filter: properties.filter,
+        scorer: properties.scorer,
+        sort: properties.sort
       })
     }
   }

@@ -113,7 +113,7 @@ describe("Generator", () => {
 
     const completions = completionGenerator.generateCompletions("天気がいい", "ja")
     expect(completions.map(cpl => cpl.text)).toEqual([
-      "天気がいいですね", "天気どうですか"
+      "天気どうですか", "天気がいいですね"
     ])
   })
 
@@ -162,10 +162,11 @@ describe("Generator", () => {
       const resultTexts = completionGenerator.generateCompletions(input, locale).map(result => result.text)
 
       expect(resultTexts.length).toBe(expectedTexts.length)
-      expect(
-        expectedTexts.every(text => resultTexts.indexOf(text) !== -1) &&
-        resultTexts.every(text => expectedTexts.indexOf(text) !== -1)
-      ).toBeTruthy()
+      // expect(
+      //   expectedTexts.every(text => resultTexts.indexOf(text) !== -1) &&
+      //   resultTexts.every(text => expectedTexts.indexOf(text) !== -1)
+      // ).toBeTruthy()
+      expect(resultTexts).toEqual(expectedTexts)
     })
   })
 
@@ -295,8 +296,51 @@ describe("Generator", () => {
       "あいうえお", "いうえおか"
     ])
   })
-})
 
+  const dataForCustomSorting = [
+    { text: "あいうえお", keywords: "" },
+    { text: "いうえおか", keywords: "あいうえお,五十音" },
+  ]
+  test("Custom Scorer, Case 1", () => {
+    const completionGenerator = new Generator({
+      scorer(data, input, locale) {
+        return 100 * data.matchedKeywords.length + parseInt(data.noKeywordMatchedLength)
+      }
+    })
+    completionGenerator.loadData("ja", Array.from(dataForCustomSorting))
+    const completions = completionGenerator.generateCompletions("あいうえお", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "いうえおか", "あいうえお"
+    ])
+  })
+
+  test("Custom Scorer, Case 2", () => {
+    const completionGenerator = new Generator({
+      scorer(data, input, locale) {
+        return parseInt(data.noKeywordMatchedLength)
+      }
+    })
+    completionGenerator.loadData("ja", Array.from(dataForCustomSorting))
+    const completions = completionGenerator.generateCompletions("あいうえお", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "あいうえお", "いうえおか"
+    ])
+  })
+
+  test("Custom sort", () => {
+    
+    const completionGenerator = new Generator({
+      sort(rsA, rsB, input, locale) {
+        return rsA.score - rsB.score
+      }
+    })
+    completionGenerator.loadData("ja", Array.from(dataForCustomSorting))
+    const completions = completionGenerator.generateCompletions("あいうえお", "ja")
+    expect(completions.map(cpl => cpl.text)).toEqual([
+      "あいうえお", "いうえおか"
+    ])
+  })
+})
 
 describe("Fetcher", () => {
   describe("Constructor", () => {

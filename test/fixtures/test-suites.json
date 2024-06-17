@@ -105,7 +105,7 @@
             {
                 "name": "Input [{PartOfKeyword} + {TextUnIncluded}] and matched",
                 "input": "コロナ休業",
-                "expectedIdx": [1, 2]
+                "expectedIdx": [2, 1]
             },
             {
                 "name": "Input [{PartOfKeyword} + {TextUnIncluded}] and matched, Case 2",
@@ -178,7 +178,7 @@
             {
                 "name": "Input [{PartOfKeyword} + {TextUnIncluded}] and matched",
                 "input": "コロナ休業",
-                "expectedIdx": [1, 2]
+                "expectedIdx": [2, 1]
             },
             {
                 "name": "Input [{PartOfKeyword} + {TextUnIncluded}] and matched, Case 2",
@@ -196,9 +196,9 @@
                 "expectedIdx": [1, 2]
             },
             {
-                "name": "Same input matched goes to the last because it is matched by the forward matcher",
+                "name": "Same input without keyword matched by ForwardMatcher",
                 "input": "新型コロナウイルス感染症とは何ですか？",
-                "expectedIdx": [1, 2, 0]
+                "expectedIdx": [0, 1, 2]
             }
         ],
         "dataset": [
@@ -251,7 +251,7 @@
             {
                 "name": "Input [{PartOfKeyword} + {TextUnIncluded}] and matched",
                 "input": "コロナ休業",
-                "expectedIdx": [1, 2]
+                "expectedIdx": [2, 1]
             },
             {
                 "name": "Input [{PartOfKeyword} + {TextUnIncluded}] and matched, Case 2",
@@ -269,9 +269,9 @@
                 "expectedIdx": [1, 2]
             },
             {
-                "name": "Same input matched goes to the last because it is matched by the forward matcher",
+                "name": "Same input without keyword matched by the forward matcher",
                 "input": "新型コロナウイルス感染症とは何ですか？",
-                "expectedIdx": [1, 2, 0]
+                "expectedIdx": [0, 1, 2]
             }
         ],
         "dataset": [
