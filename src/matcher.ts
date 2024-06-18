@@ -90,9 +90,17 @@ export class Matcher {
 
   // @ts-ignore
   _defaultScorer(data: MatchedResultData, input: string, locale: string): number {
+    const text = data.text
     let score = 0
     if (data.matchedKeywords) {
       score += 10 * data.matchedKeywords.length
+
+      for (const kw of data.matchedKeywords) {
+        const kwText = kw.text
+        if (text.indexOf(kwText) !== -1) {
+          score += kwText.length
+        }
+      }
     }
     if (data.noKeywordMatchedLength) {
       score += data.noKeywordMatchedLength
@@ -232,10 +240,10 @@ export class ForwardMatcher extends Matcher {
     let currentKeyword: MatchedKeyword | null = null
     while (keywordIdx < matchedKeywords.length) {
       currentKeyword = matchedKeywords[keywordIdx]
-      let prevEndAt = prevKeyword?.endAt || 0
+      let prevEndAt = prevKeyword?.endAt || -1
       let startAt = currentKeyword.startAt
 
-      if (startAt > prevEndAt) {
+      if (startAt > prevEndAt + 1) {
         noMatchedKeywordParts.push({
           text: input.slice(prevEndAt + 1, startAt),
           startAt: prevEndAt + 1,

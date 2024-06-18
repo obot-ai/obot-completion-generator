@@ -39,8 +39,16 @@ class p {
   }
   // @ts-ignore
   _defaultScorer(t, e, a) {
-    let s = 0;
-    return t.matchedKeywords && (s += 10 * t.matchedKeywords.length), t.noKeywordMatchedLength && (s += t.noKeywordMatchedLength), s;
+    const s = t.text;
+    let r = 0;
+    if (t.matchedKeywords) {
+      r += 10 * t.matchedKeywords.length;
+      for (const n of t.matchedKeywords) {
+        const o = n.text;
+        s.indexOf(o) !== -1 && (r += o.length);
+      }
+    }
+    return t.noKeywordMatchedLength && (r += t.noKeywordMatchedLength), r;
   }
   _sortResults(t, e, a) {
     let s = null;
@@ -109,8 +117,8 @@ class L extends p {
     let i = 0, d = null, f = null;
     for (; i < o.length; ) {
       f = o[i];
-      let y = (d == null ? void 0 : d.endAt) || 0, x = f.startAt;
-      x > y && l.push({
+      let y = (d == null ? void 0 : d.endAt) || -1, x = f.startAt;
+      x > y + 1 && l.push({
         text: e.slice(y + 1, x),
         startAt: y + 1,
         endAt: x - 1

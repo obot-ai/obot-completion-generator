@@ -162,10 +162,6 @@ describe("Generator", () => {
       const resultTexts = completionGenerator.generateCompletions(input, locale).map(result => result.text)
 
       expect(resultTexts.length).toBe(expectedTexts.length)
-      // expect(
-      //   expectedTexts.every(text => resultTexts.indexOf(text) !== -1) &&
-      //   resultTexts.every(text => expectedTexts.indexOf(text) !== -1)
-      // ).toBeTruthy()
       expect(resultTexts).toEqual(expectedTexts)
     })
   })

@@ -125,7 +125,7 @@
             {
                 "name": "Same input not matched because keywords not set",
                 "input": "新型コロナウイルス感染症とは何ですか？",
-                "expectedIdx": [1, 2]
+                "expectedIdx": [2, 1]
             }
         ],
         "dataset": [
@@ -198,7 +198,7 @@
             {
                 "name": "Same input without keyword matched by ForwardMatcher",
                 "input": "新型コロナウイルス感染症とは何ですか？",
-                "expectedIdx": [0, 1, 2]
+                "expectedIdx": [2, 0, 1]
             }
         ],
         "dataset": [
@@ -271,7 +271,7 @@
             {
                 "name": "Same input without keyword matched by the forward matcher",
                 "input": "新型コロナウイルス感染症とは何ですか？",
-                "expectedIdx": [0, 1, 2]
+                "expectedIdx": [2, 0, 1]
             }
         ],
         "dataset": [
