@@ -96,7 +96,10 @@ import { Generator, Fetcher, KeywordForwardMatcher } from '@obot-ai/completion-g
             - KeywordMatcherに通した場合、
               - machedKeywords: (text: string, startAt: number, endAt: number)[]: キーワードと判定された部分の情報
           - デフォルト: 
-            - machedKeywords.length * 10 + noKeywordMatchedLength
+            - + matchedKeywords.length * 10
+            - matchedKeywords.forEach
+              - if kw.text in data.text: + kw.text.length * 1
+            - + noKeywordMatchedLength * 1
         - sort: (rsA: MatchedResultData, rsB: MatchedResultData, input: string, locale: string) => number: マッチ結果をソートするメソッド
           - デフォルト:
             - マッチ結果に付与されているスコアでソートする

@@ -1,18 +1,18 @@
 var A = Object.defineProperty;
-var E = (u, t, e) => t in u ? A(u, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : u[t] = e;
-var m = (u, t, e) => (E(u, typeof t != "symbol" ? t + "" : t, e), e);
-const _ = (u, t) => Array.from(Array(u).keys()).map((e) => e + t), M = (u, t) => !(u.text !== t.text || u.startAt !== t.startAt || u.endAt !== t.endAt);
-class p {
+var E = (y, t, e) => t in y ? A(y, t, { enumerable: !0, configurable: !0, writable: !0, value: e }) : y[t] = e;
+var u = (y, t, e) => (E(y, typeof t != "symbol" ? t + "" : t, e), e);
+const S = (y, t) => Array.from(Array(y).keys()).map((e) => e + t), M = (y, t) => !(y.text !== t.text || y.startAt !== t.startAt || y.endAt !== t.endAt);
+class x {
   constructor(t = {}) {
-    m(this, "keywordSeparator");
-    m(this, "minKeywordLength");
-    m(this, "strictMatchLocales");
-    m(this, "comparator");
-    m(this, "filter");
-    m(this, "scorer");
-    m(this, "sort");
-    m(this, "data");
-    m(this, "maxResults");
+    u(this, "keywordSeparator");
+    u(this, "minKeywordLength");
+    u(this, "strictMatchLocales");
+    u(this, "comparator");
+    u(this, "filter");
+    u(this, "scorer");
+    u(this, "sort");
+    u(this, "data");
+    u(this, "maxResults");
     this.keywordSeparator = t.keywordSeparator || ",", this.minKeywordLength = t.minKeywordLength || 2, this.strictMatchLocales = t.strictMatchLocales || ["en"], t.maxResults && (this.maxResults = t.maxResults), typeof t.comparator == "function" && (this.comparator = t.comparator), typeof t.filter == "function" && (this.filter = t.filter), (typeof t.scorer == "function" || t.scorer === null) && (this.scorer = t.scorer), (typeof t.sort == "function" || t.sort === null) && (this.sort = t.sort), this.data = /* @__PURE__ */ new Map();
   }
   /**
@@ -24,50 +24,51 @@ class p {
     this.data.set(t, e);
   }
   match(t, e) {
-    const a = this._match(t, e);
-    return this._scoreResults(a, t, e), this._sortResults(a, t, e), this.maxResults && this.maxResults > 0 ? a.slice(0, this.maxResults) : a;
+    const o = this._match(t, e);
+    return this._scoreResults(o, t, e), this._sortResults(o, t, e), this.maxResults && this.maxResults > 0 ? o.slice(0, this.maxResults) : o;
   }
   // @ts-ignore
   _match(t, e) {
     return [];
   }
-  _scoreResults(t, e, a) {
+  _scoreResults(t, e, o) {
     let s = null;
-    if (this.scorer ? s = this.scorer : this.scorer !== null && (s = this._defaultScorer), s)
+    if (this.scorer ? s = this.scorer.bind(this) : this.scorer !== null && (s = this._defaultScorer.bind(this)), s)
       for (const r of t)
-        r.score = s(r, e, a);
+        r.score = s(r, e, o);
   }
   // @ts-ignore
-  _defaultScorer(t, e, a) {
-    const s = t.text;
+  _defaultScorer(t, e, o) {
+    const s = t.text.toLowerCase();
     let r = 0;
     if (t.matchedKeywords) {
       r += 10 * t.matchedKeywords.length;
       for (const n of t.matchedKeywords) {
-        const o = n.text;
-        s.indexOf(o) !== -1 && (r += o.length);
+        const a = n.text.toLowerCase();
+        let h = 0;
+        s.indexOf(a) !== -1 && (h = a.length), r += h;
       }
     }
     return t.noKeywordMatchedLength && (r += t.noKeywordMatchedLength), r;
   }
-  _sortResults(t, e, a) {
+  _sortResults(t, e, o) {
     let s = null;
-    this.sort ? s = this.sort : this.sort !== null && (s = this._defaultSort), s && t.sort((r, n) => s(r, n, e, a));
+    this.sort ? s = this.sort.bind(this) : this.sort !== null && (s = this._defaultSort.bind(this)), s && t.sort((r, n) => s(r, n, e, o));
   }
   // @ts-ignore
-  _defaultSort(t, e, a, s) {
+  _defaultSort(t, e, o, s) {
     return t.score && e.score ? e.score - t.score : 0;
   }
 }
-class L extends p {
+class L extends x {
   _match(t, e) {
-    const a = this.data.get(e);
-    if (!a)
+    const o = this.data.get(e);
+    if (!o)
       return [];
-    let s = Array.from(a);
+    let s = Array.from(o);
     if (this.comparator) {
       const r = this.comparator;
-      s.sort((n, o) => r(n, o, t, e));
+      s.sort((n, a) => r(n, a, t, e));
     }
     if (this.filter) {
       const r = this.filter;
@@ -75,53 +76,53 @@ class L extends p {
     }
     return this._forwardMatch(s, t.toLowerCase(), e);
   }
-  _forwardMatch(t, e, a) {
-    const s = this.strictMatchLocales.indexOf(a) !== -1, r = [];
+  _forwardMatch(t, e, o) {
+    const s = this.strictMatchLocales.indexOf(o) !== -1, r = [];
     if (t)
       for (const n of t) {
-        let o;
-        s ? o = this._wordMatch(n, e) : o = this._charMatch(n, e), o.isMatched && o.data && r.push(o.data);
+        let a;
+        s ? a = this._wordMatch(n, e) : a = this._charMatch(n, e), a.isMatched && a.data && r.push(a.data);
       }
     return r;
   }
   _charMatch(t, e) {
-    const a = t.text.toLowerCase(), s = t.keywords.toLowerCase(), r = this.minKeywordLength || 2, n = e.length, o = [];
-    let c = 0;
-    for (; c < n; ) {
-      let y = "", x = e[c];
-      if (s.indexOf(x) !== -1) {
-        let w = c;
-        if (y = x, w < n - 1) {
-          for (w += 1; w < n; ) {
-            const K = y + e[w];
+    const o = t.text.toLowerCase(), s = t.keywords.toLowerCase(), r = this.minKeywordLength || 2, n = e.length, a = [];
+    let h = 0;
+    for (; h < n; ) {
+      let c = "", w = e[h];
+      if (s.indexOf(w) !== -1) {
+        let m = h;
+        if (c = w, m < n - 1) {
+          for (m += 1; m < n; ) {
+            const K = c + e[m];
             if (s.indexOf(K) === -1) {
-              w -= 1;
+              m -= 1;
               break;
             }
-            y = K, w += 1;
+            c = K, m += 1;
           }
-          w === n && (w -= 1);
+          m === n && (m -= 1);
         }
-        y.length >= r && o.push({
-          text: y,
-          startAt: c,
-          endAt: w
-        }), c = w + 1;
+        c.length >= r && a.push({
+          text: c,
+          startAt: h,
+          endAt: m
+        }), h = m + 1;
       } else {
-        if (a.indexOf(x) === -1)
+        if (o.indexOf(w) === -1)
           return { isMatched: !1 };
-        c += 1;
+        h += 1;
       }
     }
     const l = [];
     let i = 0, d = null, f = null;
-    for (; i < o.length; ) {
-      f = o[i];
-      let y = (d == null ? void 0 : d.endAt) || -1, x = f.startAt;
-      x > y + 1 && l.push({
-        text: e.slice(y + 1, x),
-        startAt: y + 1,
-        endAt: x - 1
+    for (; i < a.length; ) {
+      f = a[i];
+      let c = (d == null ? void 0 : d.endAt) || -1, w = f.startAt;
+      w > c + 1 && l.push({
+        text: e.slice(c + 1, w),
+        startAt: c + 1,
+        endAt: w - 1
       }), d = f, i += 1;
     }
     if (i === 0)
@@ -131,126 +132,135 @@ class L extends p {
         endAt: n - 1
       });
     else if (f) {
-      const y = f.endAt;
-      y + 1 < n && l.push({
-        text: e.slice(y + 1, n),
-        startAt: y + 1,
+      const c = f.endAt;
+      c + 1 < n && l.push({
+        text: e.slice(c + 1, n),
+        startAt: c + 1,
         endAt: n - 1
       });
     }
-    const h = l.every((y) => a.indexOf(y.text) !== -1);
-    let g = 0;
-    return l.forEach((y) => {
-      g += y.text.length;
+    const g = l.every((c) => o.indexOf(c.text) !== -1);
+    let p = 0;
+    return l.forEach((c) => {
+      p += c.text.length;
     }), {
-      isMatched: h,
+      isMatched: g,
       data: {
         text: t.text,
         keywords: t.keywords,
-        matchedKeywords: o,
-        noKeywordMatchedLength: g
+        matchedKeywords: a,
+        noKeywordMatchedLength: p
       }
     };
   }
   _wordMatch(t, e) {
-    const a = t.text.toLowerCase(), s = this.keywordSeparator || ",", r = [];
-    t.keywords.toLowerCase().split(s).forEach((h) => {
-      h.split(" ").forEach((g) => {
-        r.push(g);
+    const o = t.text.toLowerCase(), s = this.keywordSeparator || ",", r = [];
+    t.keywords.toLowerCase().split(s).forEach((c) => {
+      c.split(" ").forEach((w) => {
+        r.push(w);
       });
     });
-    const n = e.split(" "), o = n.pop();
-    if (!(a.indexOf(o) !== -1 || r.some((h) => h.indexOf(o) !== -1)))
+    const n = e.split(" "), a = n.pop(), h = r.some((c) => c.indexOf(a) !== -1);
+    if (!(h || o.indexOf(a) !== -1))
       return { isMatched: !1 };
-    const l = n.filter((h) => r.indexOf(h) !== -1).map(
-      (h) => {
-        const g = e.indexOf(h), y = g + h.length - 1;
-        return {
-          text: h,
-          startAt: g,
-          endAt: y
-        };
-      }
-    ), i = n.filter((h) => r.indexOf(h) === -1), d = i.every((h) => a.indexOf(h) !== -1);
-    let f = 0;
-    return i.forEach((h) => {
-      f += h.length;
+    const i = [];
+    let d = 0;
+    for (const c of n.filter((w) => r.indexOf(w) !== -1)) {
+      const w = e.indexOf(c, d), m = w + c.length - 1;
+      i.push({
+        text: c,
+        startAt: w,
+        endAt: m
+      }), d = m;
+    }
+    if (h) {
+      const c = e.indexOf(a, d);
+      i.push({
+        text: a,
+        startAt: c,
+        endAt: c + a.length - 1
+      });
+    }
+    const f = n.filter((c) => r.indexOf(c) === -1), g = f.every((c) => o.indexOf(c) !== -1);
+    let p = h ? 0 : a.length;
+    return f.forEach((c) => {
+      p += c.length;
     }), {
-      isMatched: d,
+      isMatched: g,
       data: {
         text: t.text,
         keywords: t.keywords,
-        matchedKeywords: l,
-        noKeywordMatchedLength: f
+        matchedKeywords: i,
+        noKeywordMatchedLength: p
       }
     };
   }
 }
-class R extends p {
+class k extends x {
   constructor() {
     super(...arguments);
-    m(this, "exactRegExpMap", /* @__PURE__ */ new Map());
-    m(this, "partialRegExpMap", /* @__PURE__ */ new Map());
+    u(this, "exactRegExpMap", /* @__PURE__ */ new Map());
+    u(this, "partialRegExpMap", /* @__PURE__ */ new Map());
   }
-  loadData(e, a) {
-    super.loadData(e, a);
+  loadData(e, o) {
+    super.loadData(e, o);
     const s = /* @__PURE__ */ new Set();
-    a.forEach((o) => {
-      o.keywords.split(this.keywordSeparator).forEach((i) => {
+    o.forEach((a) => {
+      a.keywords.split(this.keywordSeparator).forEach((i) => {
         i.length > 0 && s.add(i.toLowerCase());
       });
     });
     const r = Array.from(s);
     if (r.length === 0)
       return;
-    r.sort((o, c) => c.length - o.length), this.exactRegExpMap.set(e, new RegExp(r.join("|"), "g"));
+    r.sort((a, h) => h.length - a.length), this.exactRegExpMap.set(e, new RegExp(r.join("|"), "g"));
     const n = [];
-    r.forEach((o) => {
-      if (o.length > this.minKeywordLength) {
-        let c = o.slice(0, this.minKeywordLength);
-        const l = [c];
-        _(o.length - this.minKeywordLength, this.minKeywordLength).forEach((i) => {
-          c += o[i], l.push(c);
+    r.forEach((a) => {
+      if (a.length > this.minKeywordLength) {
+        let h = a.slice(0, this.minKeywordLength);
+        const l = [h];
+        S(a.length - this.minKeywordLength, this.minKeywordLength).forEach((i) => {
+          h += a[i], l.push(h);
         }), l.reverse(), n.push(l.join("|"));
       } else
-        o.length > 0 && n.push(o);
+        a.length > 0 && n.push(a);
     }), this.partialRegExpMap.set(e, new RegExp(n.join("|"), "g"));
   }
-  _match(e, a) {
-    const s = this.data.get(a);
+  _match(e, o) {
+    const s = this.data.get(o);
     if (!s)
       return [];
     let r = Array.from(s);
     if (this.comparator) {
       const n = this.comparator;
-      r.sort((o, c) => n(o, c, e, a));
+      r.sort((a, h) => n(a, h, e, o));
     }
-    return this._keywordMatch(r, e, a);
+    return this._keywordMatch(r, e.toLowerCase(), o);
   }
-  _keywordMatch(e, a, s) {
+  _keywordMatch(e, o, s) {
     const r = [];
     let n = this.exactRegExpMap.get(s);
     if (e && n) {
-      let o;
-      if (o = a.toLowerCase().match(n), !o) {
-        const c = this.partialRegExpMap.get(s);
-        c && (o = a.toLowerCase().match(c));
+      let a;
+      if (a = o.match(n), !a) {
+        const h = this.partialRegExpMap.get(s);
+        h && (a = o.match(h));
       }
-      if (o) {
-        let c = 0;
+      if (a) {
+        let h = 0;
         const l = [];
-        for (const i of o) {
-          const d = a.indexOf(i, c), f = d + i.length - 1;
+        for (const i of a) {
+          const d = o.indexOf(i, h), f = d + i.length - 1;
           l.push({
             text: i,
             startAt: d,
             endAt: f
-          }), c = f;
+          }), h = f;
         }
         for (const i of e) {
-          const d = [], f = i.keywords;
-          l.forEach((h) => {
-            f.indexOf(h.text) !== -1 && d.push(h);
+          const d = [], f = i.keywords.toLowerCase();
+          l.forEach((g) => {
+            f.indexOf(g.text) !== -1 && d.push(g);
           }), d.length > 0 && r.push({
             text: i.text,
             keywords: i.keywords,
@@ -262,71 +272,75 @@ class R extends p {
     return r;
   }
 }
-class S extends p {
+class _ extends x {
   constructor(e) {
     super(e);
-    m(this, "matchers");
+    u(this, "matchers");
     this.matchers = [];
   }
   addMatcherByClass(e) {
-    const a = new e({
+    const o = new e({
       keywordSeparator: this.keywordSeparator,
       minKeywordLength: this.minKeywordLength,
       strictMatchLocales: this.strictMatchLocales,
-      comparator: this.comparator
+      comparator: this.comparator,
+      scorer: null,
+      sort: null
     });
-    this.addMatcher(a);
+    this.addMatcher(o);
   }
   addMatcher(e) {
     typeof e.loadData == "function" && typeof e.match == "function" && this.matchers.push(e);
   }
-  loadData(e, a) {
-    const s = JSON.stringify(a);
+  loadData(e, o) {
+    const s = JSON.stringify(o);
     this.matchers.forEach((r) => {
       r.loadData(e, JSON.parse(s));
     });
   }
-  _match(e, a) {
+  _match(e, o) {
     const s = [];
     for (const r of this.matchers) {
-      const n = r.match(e, a);
-      for (const o of n) {
-        const c = s.find((l) => l.text === o.text);
-        if (c) {
-          const l = c.matchedKeywords, i = o.matchedKeywords;
+      const n = r.match(e, o);
+      for (const a of n) {
+        const h = s.find((l) => l.text === a.text);
+        if (h) {
+          const l = h.matchedKeywords, i = a.matchedKeywords;
           let d = [];
           l && l.forEach((f) => {
-            d.some((h) => M(f, h)) || d.push(f);
+            d.some((g) => M(f, g)) || d.push(f);
           }), i && i.forEach((f) => {
-            d.some((h) => M(f, h)) || d.push(f);
-          }), d = Array.from(new Set(d)), Object.assign(c, o, {
+            d.some((g) => M(f, g)) || d.push(f);
+          }), d = Array.from(new Set(d)), Object.assign(h, a, {
             matchedKeywords: d
           });
         } else
-          s.push(o);
+          s.push(a);
       }
     }
     return s;
   }
 }
-class D extends S {
+class D extends _ {
   constructor(t) {
-    super(t), this.addMatcher(new R({
-      ...t,
-      scorer: null,
-      sort: null
+    super(t), this.addMatcher(new k({
+      keywordSeparator: this.keywordSeparator,
+      minKeywordLength: this.minKeywordLength,
+      strictMatchLocales: this.strictMatchLocales,
+      comparator: this.comparator
     })), this.addMatcher(new L({
-      ...t,
-      scorer: null,
-      sort: null
+      keywordSeparator: this.keywordSeparator,
+      minKeywordLength: this.minKeywordLength,
+      strictMatchLocales: this.strictMatchLocales,
+      comparator: this.comparator
     }));
   }
 }
-const k = L;
+const R = L;
 class C {
   constructor(t = { keywordSeparator: ",", minKeywordLength: 2, strictMatchLocales: ["en"] }) {
-    m(this, "matcher");
-    t.matcher ? this.matcher = t.matcher : this.matcher = new k({
+    u(this, "matcher");
+    t.matcher ? this.matcher = t.matcher : this.matcher = new R({
       keywordSeparator: t.keywordSeparator || ",",
       minKeywordLength: t.minKeywordLength || 2,
       strictMatchLocales: t.strictMatchLocales || ["en"],
@@ -372,10 +386,10 @@ class C {
 }
 class v {
   constructor(t = { apiKey: "" }) {
-    m(this, "apiKey");
-    m(this, "apiKeyHeaderName", "X-Secret-Key");
-    m(this, "getEndpoint");
-    m(this, "handleResponse");
+    u(this, "apiKey");
+    u(this, "apiKeyHeaderName", "X-Secret-Key");
+    u(this, "getEndpoint");
+    u(this, "handleResponse");
     this.apiKey = t.apiKey, t.apiKeyHeaderName && (this.apiKeyHeaderName = t.apiKeyHeaderName), typeof t.getEndpoint == "function" ? this.getEndpoint = t.getEndpoint : this.getEndpoint = (e) => `/input_completion/${e}/`, typeof t.handleResponse == "function" ? this.handleResponse = t.handleResponse : this.handleResponse = (e) => {
       if ("user_says" in e && Array.isArray(e.user_says))
         return e.user_says;
@@ -389,12 +403,12 @@ class v {
    */
   fetch(t) {
     const e = this.getEndpoint(t);
-    return new Promise(async (a, s) => {
+    return new Promise(async (o, s) => {
       try {
         const r = await this._fetch(e);
         try {
           const n = this.handleResponse(r);
-          a(n);
+          o(n);
         } catch {
           s(`Invalid data fetched. ${JSON.stringify(r)}`);
         }
@@ -405,7 +419,7 @@ class v {
     });
   }
   _fetch(t) {
-    return new Promise(async (e, a) => {
+    return new Promise(async (e, o) => {
       if (this.isFetchAvailable()) {
         const s = {};
         if (this.apiKey) {
@@ -417,7 +431,7 @@ class v {
           const n = await r.json();
           e(n);
         } else
-          a(`Failed to fetch data. Status: ${r.status}`);
+          o(`Failed to fetch data. Status: ${r.status}`);
       } else {
         const s = new XMLHttpRequest();
         s.open("GET", t), this.apiKey && s.setRequestHeader(this.apiKeyHeaderName, this.apiKey), s.onload = () => {
@@ -426,12 +440,12 @@ class v {
               const r = JSON.parse(s.response);
               e(r);
             } catch {
-              a("Invalid response data format.");
+              o("Invalid response data format.");
             }
           else
-            a(`Failed to fetch data. Status: ${s.status}`);
+            o(`Failed to fetch data. Status: ${s.status}`);
         }, s.onerror = () => {
-          a("Unknown error occurred while fetching completion data.");
+          o("Unknown error occurred while fetching completion data.");
         }, s.send();
       }
     });
@@ -441,12 +455,12 @@ class v {
   }
 }
 export {
-  S as ConcatMatcher,
-  k as DefaultMatcher,
+  _ as ConcatMatcher,
+  R as DefaultMatcher,
   v as Fetcher,
   L as ForwardMatcher,
   C as Generator,
   D as KeywordForwardMatcher,
-  R as KeywordMatcher,
-  p as Matcher
+  k as KeywordMatcher,
+  x as Matcher
 };
