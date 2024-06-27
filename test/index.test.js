@@ -159,7 +159,8 @@ describe("Generator", () => {
 
     test.each(cases)('Case $name', ({name, input, expectedIdx}) => {
       const expectedTexts = expectedIdx.map(idx => dataset[idx].text)
-      const resultTexts = completionGenerator.generateCompletions(input, locale).map(result => result.text)
+      const results = completionGenerator.generateCompletions(input, locale)
+      const resultTexts = results.map(result => result.text)
 
       expect(resultTexts.length).toBe(expectedTexts.length)
       expect(resultTexts).toEqual(expectedTexts)
@@ -324,7 +325,6 @@ describe("Generator", () => {
   })
 
   test("Custom sort", () => {
-    
     const completionGenerator = new Generator({
       sort(rsA, rsB, input, locale) {
         return rsA.score - rsB.score
@@ -335,6 +335,206 @@ describe("Generator", () => {
     expect(completions.map(cpl => cpl.text)).toEqual([
       "あいうえお", "いうえおか"
     ])
+  })
+
+  test("ForwardMatcher scoring ja", () => {
+    const matcher = new ForwardMatcher({})
+    const generator = new Generator({
+      matcher: matcher
+    })
+    generator.loadData("ja", [
+      {
+          "text": "新型コロナウイルス感染症とは何ですか？",
+          "keywords": ""
+      },
+      {
+          "text": "コロナウイルスとはどのようなウイルスですか？",
+          "keywords": "コロナウイルス,Corona Virus,COVID19,COVID-19,ころなういるす,新型コロナウイルス,Covid-19,Covid19,covid19,covid-19,COVID,コロナウィルス,ころな,COVIDー19,コロナ,新型コロナウイルス感染症,新型コロナウィルス感染症,コロな,ｺﾛﾅ,ｃoｖiｄ19,新型コロナ,新型コロナウィルス"
+      },
+      {
+          "text": "新型コロナウイルス感染症によって、事業の休止などを余儀なくされ、やむを得ず休業とする場合等にどのようなことに心がければよいのでしょうか。",
+          "keywords": "コロナウイルス,Corona Virus,COVID19,COVID-19,ころなういるす,新型コロナウイルス,Covid-19,Covid19,covid19,covid-19,COVID,コロナウィルス,ころな,COVIDー19,コロナ,新型コロナウイルス感染症,新型コロナウィルス感染症,コロな,ｺﾛﾅ,ｃoｖiｄ19,新型コロナ,新型コロナウィルス,休業,一時休業"
+      }
+    ])
+
+    const cases = [
+      {
+        input: "ですか",
+        expectedScores: [3, 3]
+      },
+      {
+        input: "コロナウイルス",
+        expectedScores: [17, 17, 7]
+      },
+      {
+        input: "新型コロナウイルス",
+        expectedScores: [19, 10, 9]
+      },
+      {
+        input: "新型コロナウイルスとは",
+        expectedScores: [12]
+      },
+      {
+        input: "cOVIDとは",
+        expectedScores: [12]
+      },
+      {
+        input: "コロナで休業になったらどうする？",
+        expectedScores: []
+      },
+      {
+        input: "こんにちは、COVIDについて教えてもらえますか？",
+        expectedScores: []
+      },
+      {
+        input: "こんにちは、新型コロナウイルスについて教えてもらえますか？",
+        expectedScores: []
+      }
+    ]
+    for (const cs of cases) {
+      const results = generator.generateCompletions(cs.input, "ja")
+      expect(results.map(rs => rs.score)).toEqual(cs.expectedScores)
+    }
+  })
+
+  test("KeywordForwardMatcher scoring ja", () => {
+    const matcher = new KeywordForwardMatcher({})
+    const generator = new Generator({
+      matcher: matcher
+    })
+    generator.loadData("ja", [
+      {
+          "text": "新型コロナウイルス感染症とは何ですか？",
+          "keywords": ""
+      },
+      {
+          "text": "コロナウイルスとはどのようなウイルスですか？",
+          "keywords": "コロナウイルス,Corona Virus,COVID19,COVID-19,ころなういるす,新型コロナウイルス,Covid-19,Covid19,covid19,covid-19,COVID,コロナウィルス,ころな,COVIDー19,コロナ,新型コロナウイルス感染症,新型コロナウィルス感染症,コロな,ｺﾛﾅ,ｃoｖiｄ19,新型コロナ,新型コロナウィルス"
+      },
+      {
+          "text": "新型コロナウイルス感染症によって、事業の休止などを余儀なくされ、やむを得ず休業とする場合等にどのようなことに心がければよいのでしょうか。",
+          "keywords": "コロナウイルス,Corona Virus,COVID19,COVID-19,ころなういるす,新型コロナウイルス,Covid-19,Covid19,covid19,covid-19,COVID,コロナウィルス,ころな,COVIDー19,コロナ,新型コロナウイルス感染症,新型コロナウィルス感染症,コロな,ｺﾛﾅ,ｃoｖiｄ19,新型コロナ,新型コロナウィルス,休業,一時休業"
+      }
+    ])
+
+    const cases = [
+      {
+        input: "ですか",
+        expectedScores: [3, 3]
+      },
+      {
+        input: "コロナウイルス",
+        expectedScores: [17, 17, 7]
+      },
+      {
+        input: "新型コロナウイルス",
+        expectedScores: [19, 10, 9]
+      },
+      {
+        input: "新型コロナウイルスとは",
+        expectedScores: [19, 12]
+      },
+      {
+        input: "cOVIDとは",
+        expectedScores: [12, 10]
+      },
+      {
+        input: "コロナで休業になったらどうする？",
+        expectedScores: [25, 13]
+      },
+      {
+        input: "こんにちは、COVIDについて教えてもらえますか？",
+        expectedScores: [10, 10]
+      },
+      {
+        input: "こんにちは、新型コロナウイルスについて教えてもらえますか？",
+        expectedScores: [19, 10]
+      }
+    ]
+    for (const cs of cases) {
+      const results = generator.generateCompletions(cs.input, "ja")
+      expect(results.map(rs => rs.score)).toEqual(cs.expectedScores)
+    }
+  })
+
+  test("ForwardMatcher scoring en", () => {
+    const matcher = new ForwardMatcher({})
+    const generator = new Generator({
+      matcher: matcher
+    })
+    generator.loadData("en", [
+      {
+          "text": "How is the weather today?",
+          "keywords": ""
+      },
+      {
+          "text": "Can you tell me what the weather is today?",
+          "keywords": "today,yesterday,tomorrow,how,what"
+      },
+      {
+          "text": "The weather is likely to be bad tomorrow.",
+          "keywords": "today,yesterday,tomorrow,good,bad"
+      }
+    ])
+
+    const cases = [
+      {
+        input: "how",
+        expectedScores: [10, 3]
+      },
+      {
+        input: "how is the weather today",
+        expectedScores: [37, 20]
+      },
+      {
+        input: "It seems to be a bad day today.",
+        expectedScores: []
+      }
+    ]
+    for (const cs of cases) {
+      const results = generator.generateCompletions(cs.input, "en")
+      expect(results.map(rs => rs.score)).toEqual(cs.expectedScores)
+    }
+  })
+
+  test("KeywordForwardMatcher scoring en", () => {
+    const matcher = new KeywordForwardMatcher({})
+    const generator = new Generator({
+      matcher: matcher
+    })
+    generator.loadData("en", [
+      {
+          "text": "How is the weather today?",
+          "keywords": ""
+      },
+      {
+          "text": "Can you tell me what the weather is today?",
+          "keywords": "today,yesterday,tomorrow,how,what"
+      },
+      {
+          "text": "The weather is likely to be bad tomorrow.",
+          "keywords": "today,yesterday,tomorrow,good,bad"
+      }
+    ])
+
+    const cases = [
+      {
+        input: "how",
+        expectedScores: [10, 3]
+      },
+      {
+        input: "how is the weather today",
+        expectedScores: [37, 20, 10]
+      },
+      {
+        input: "It seems to be a bad day today.",
+        expectedScores: [23, 15]
+      }
+    ]
+    for (const cs of cases) {
+      const results = generator.generateCompletions(cs.input, "en")
+      expect(results.map(rs => rs.score)).toEqual(cs.expectedScores)
+    }
   })
 })
 

@@ -299,10 +299,10 @@
             {
                 "name": "Three matches and returns 1 because of the maxResults, Case 1",
                 "input": "新型コロナウイルス",
-                "expectedIdx": [1]
+                "expectedIdx": [2]
             },
             {
-                "name": "Three matches and returns 1 because of the maxResults, Case 2",
+                "name": "Two matches and returns 1 because of the maxResults, Case 2",
                 "input": "ですか",
                 "expectedIdx": [0]
             }

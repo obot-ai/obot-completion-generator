@@ -76,9 +76,9 @@ export class Matcher {
   _scoreResults(results: MatchedResultData[], input: string, locale: string): void {
     let scorer = null
     if (this.scorer) {
-      scorer = this.scorer
+      scorer = this.scorer.bind(this)
     } else if (this.scorer !== null) {
-      scorer = this._defaultScorer
+      scorer = this._defaultScorer.bind(this)
     }
 
     if (scorer) {
@@ -90,16 +90,20 @@ export class Matcher {
 
   // @ts-ignore
   _defaultScorer(data: MatchedResultData, input: string, locale: string): number {
-    const text = data.text
+    const text = data.text.toLowerCase()
+
     let score = 0
     if (data.matchedKeywords) {
       score += 10 * data.matchedKeywords.length
 
       for (const kw of data.matchedKeywords) {
-        const kwText = kw.text
+        const kwText = kw.text.toLowerCase()
+
+        let plus = 0
         if (text.indexOf(kwText) !== -1) {
-          score += kwText.length
+          plus = kwText.length
         }
+        score += plus
       }
     }
     if (data.noKeywordMatchedLength) {
@@ -111,9 +115,9 @@ export class Matcher {
   _sortResults(results: MatchedResultData[], input: string, locale: string) {
     let sort = null
     if (this.sort) {
-      sort = this.sort
+      sort = this.sort.bind(this)
     } else if (this.sort !== null) {
-      sort = this._defaultSort
+      sort = this._defaultSort.bind(this)
     }
     if (sort) {
       results.sort((rsA, rsB) => sort(rsA, rsB, input, locale))
@@ -306,27 +310,38 @@ export class ForwardMatcher extends Matcher {
     const lastInputPart = inputs.pop() as string
 
     // 最後の単語だけは入力途中なので、部分一致でマッチ
-    const lastInputMatched = text.indexOf(lastInputPart) !== -1 || keywords.some(kw => kw.indexOf(lastInputPart) !== -1)
+    const lastInputKeyword = keywords.some(kw => kw.indexOf(lastInputPart) !== -1)
+    const lastInputMatched = lastInputKeyword || text.indexOf(lastInputPart) !== -1
     if (!lastInputMatched) {
       return { isMatched: false }
     }
 
-    const matchedKeywords: MatchedKeyword[] = inputs.filter(ipt => keywords.indexOf(ipt) !== -1).map(
-      kw => {
-        const startAt = input.indexOf(kw)
-        const endAt = startAt + kw.length - 1
-        return {
-          text: kw,
-          startAt: startAt,
-          endAt
-        }
-      }
-    )
+    const matchedKeywords: MatchedKeyword[] = []
+    let lastEndAt = 0
+
+    for (const mkw of inputs.filter(ipt => keywords.indexOf(ipt) !== -1)) {
+      const startAt = input.indexOf(mkw, lastEndAt)
+      const endAt = startAt + mkw.length - 1
+      matchedKeywords.push({
+        text: mkw,
+        startAt: startAt,
+        endAt
+      })
+      lastEndAt = endAt
+    }
+    if (lastInputKeyword) {
+      const startAt = input.indexOf(lastInputPart, lastEndAt)
+      matchedKeywords.push({
+        text: lastInputPart,
+        startAt: startAt,
+        endAt: startAt + lastInputPart.length - 1
+      })
+    }
 
     const unmatchedParts = inputs.filter(ipt => keywords.indexOf(ipt) === -1)
     const isMatched = unmatchedParts.every(word => text.indexOf(word) !== -1)
 
-    let noKeywordMatchedLength = 0
+    let noKeywordMatchedLength = lastInputKeyword ? 0 : lastInputPart.length
     unmatchedParts.forEach((part) => {
       noKeywordMatchedLength += part.length
     })
@@ -405,7 +420,7 @@ export class KeywordMatcher extends Matcher {
       })
     }
 
-    return this._keywordMatch(localeData, input, locale)
+    return this._keywordMatch(localeData, input.toLowerCase(), locale)
   }
 
   _keywordMatch(localeData: LocaleDataItem[], input: string, locale: string): MatchedResultData[] {
@@ -413,11 +428,11 @@ export class KeywordMatcher extends Matcher {
     let exactRegExp = this.exactRegExpMap.get(locale)
     if (localeData && exactRegExp) {
       let matches: RegExpMatchArray | null
-      matches = input.toLowerCase().match(exactRegExp)
+      matches = input.match(exactRegExp)
       if (!matches) {
         const partialRegExp = this.partialRegExpMap.get(locale)
         if (partialRegExp) {
-          matches = input.toLowerCase().match(partialRegExp)
+          matches = input.match(partialRegExp)
         }
       }
       if (matches) {
@@ -435,7 +450,7 @@ export class KeywordMatcher extends Matcher {
         }
         for (const item of localeData) {
           const matched: MatchedKeyword[] = []
-          const itemKeywords = item.keywords
+          const itemKeywords = item.keywords.toLowerCase()
           matchedKeywords.forEach(kwItem => {
             if (itemKeywords.indexOf(kwItem.text) !== -1) {
               matched.push(kwItem)
@@ -470,7 +485,9 @@ export class ConcatMatcher extends Matcher {
       keywordSeparator: this.keywordSeparator,
       minKeywordLength: this.minKeywordLength,
       strictMatchLocales: this.strictMatchLocales,
-      comparator: this.comparator
+      comparator: this.comparator,
+      scorer: null,
+      sort: null
     })
 
     this.addMatcher(matcher)
@@ -533,14 +550,16 @@ export class KeywordForwardMatcher extends ConcatMatcher {
     super(properties)
 
     this.addMatcher(new KeywordMatcher({
-      ...properties,
-      scorer: null,
-      sort: null
+      keywordSeparator: this.keywordSeparator,
+      minKeywordLength: this.minKeywordLength,
+      strictMatchLocales: this.strictMatchLocales,
+      comparator: this.comparator
     }))
     this.addMatcher(new ForwardMatcher({
-      ...properties,
-      scorer: null,
-      sort: null
+      keywordSeparator: this.keywordSeparator,
+      minKeywordLength: this.minKeywordLength,
+      strictMatchLocales: this.strictMatchLocales,
+      comparator: this.comparator
     }))
   }
 }
